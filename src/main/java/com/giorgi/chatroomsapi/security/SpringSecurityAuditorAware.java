@@ -8,6 +8,8 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -18,12 +20,13 @@ public class SpringSecurityAuditorAware implements AuditorAware<User> {
     private final UserRepository userRepository;
 
     @Override
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
     public Optional<User> getCurrentAuditor() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null
-            || !authentication.isAuthenticated()
-            || authentication instanceof AnonymousAuthenticationToken) {
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
             return Optional.empty();
         }
 
