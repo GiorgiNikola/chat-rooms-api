@@ -3,8 +3,11 @@ package com.giorgi.chatroomsapi.service;
 import com.giorgi.chatroomsapi.dto.room.RoomCreateRequest;
 import com.giorgi.chatroomsapi.dto.room.RoomResponseDto;
 import com.giorgi.chatroomsapi.entity.Room;
+import com.giorgi.chatroomsapi.entity.RoomMembership;
+import com.giorgi.chatroomsapi.enums.Role;
 import com.giorgi.chatroomsapi.exception.ResourceNotFoundException;
 import com.giorgi.chatroomsapi.mapper.RoomMapper;
+import com.giorgi.chatroomsapi.repository.RoomMembershipRepository;
 import com.giorgi.chatroomsapi.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,11 +21,19 @@ public class RoomService {
 
     private final RoomMapper roomMapper;
     private final RoomRepository roomRepository;
+    private final RoomMembershipRepository roomMembershipRepository;
 
     @Transactional
     public RoomResponseDto create(RoomCreateRequest request) {
         Room room = roomMapper.toRoom(request);
         Room saved = roomRepository.save(room);
+
+        RoomMembership ownerMembership = new RoomMembership();
+        ownerMembership.setRoom(saved);
+        ownerMembership.setUser(saved.getOwner());
+        ownerMembership.setRole(Role.OWNER);
+        roomMembershipRepository.save(ownerMembership);
+
         return roomMapper.toRoomResponse(saved);
     }
 

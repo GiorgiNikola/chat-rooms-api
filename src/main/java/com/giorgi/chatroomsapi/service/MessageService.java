@@ -12,6 +12,7 @@ import com.giorgi.chatroomsapi.mapper.MessageMapper;
 import com.giorgi.chatroomsapi.repository.MessageRepository;
 import com.giorgi.chatroomsapi.repository.RoomMembershipRepository;
 import com.giorgi.chatroomsapi.repository.RoomRepository;
+import com.giorgi.chatroomsapi.repository.UserRepository;
 import com.giorgi.chatroomsapi.security.AuthenticatedUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,14 +31,22 @@ public class MessageService {
     private final RoomMembershipRepository roomMembershipRepository;
     private final RoomRepository roomRepository;
     private final MessageRepository messageRepository;
+    private final UserRepository userRepository;
     private final MessageMapper messageMapper;
 
     @Transactional
     public MessageResponseDto sendMessage(Long roomId, MessageCreateRequest request) {
         User sender = authenticatedUserProvider.getCurrentUser();
+        return sendMessage(roomId, request, sender.getEmail());
+    }
+
+    @Transactional
+    public MessageResponseDto sendMessage(Long roomId, MessageCreateRequest request, String senderEmail) {
+        User sender = userRepository.findByEmail(senderEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
-        if(!roomMembershipRepository.existsByRoomIdAndUserId(roomId, sender.getId())) {
+        if (!roomMembershipRepository.existsByRoomIdAndUserId(roomId, sender.getId())) {
             throw new ForbiddenException("You are not a member of this room");
         }
 
