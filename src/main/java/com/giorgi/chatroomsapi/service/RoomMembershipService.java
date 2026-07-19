@@ -12,6 +12,7 @@ import com.giorgi.chatroomsapi.mapper.RoomMembershipMapper;
 import com.giorgi.chatroomsapi.repository.RoomMembershipRepository;
 import com.giorgi.chatroomsapi.repository.RoomRepository;
 import com.giorgi.chatroomsapi.repository.UserRepository;
+import com.giorgi.chatroomsapi.security.AuthenticatedUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,12 +27,7 @@ public class RoomMembershipService {
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
     private final RoomMembershipMapper roomMembershipMapper;
-
-    private User getCurrentUser() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-    }
+    private final AuthenticatedUserProvider authenticatedUserProvider;
 
     private Room getRoomById(Long roomId) {
         return roomRepository.findById(roomId)
@@ -40,7 +36,7 @@ public class RoomMembershipService {
 
     @Transactional
     public RoomMembershipResponseDto joinRoom(Long roomId) {
-        User user = getCurrentUser();
+        User user = authenticatedUserProvider.getCurrentUser();
         if (roomMembershipRepository.existsByRoomIdAndUserId(roomId, user.getId())) {
             throw new DuplicateResourceException("User is already a member of the room");
         }
@@ -55,7 +51,7 @@ public class RoomMembershipService {
 
     @Transactional
     public void leaveRoom(Long roomId) {
-        User user = getCurrentUser();
+        User user = authenticatedUserProvider.getCurrentUser();
         RoomMembership roomMembership = roomMembershipRepository.findByRoomIdAndUserId(roomId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User is not a member of the room"));
         if (roomMembership.getRole() == Role.OWNER) {
